@@ -27,7 +27,7 @@
       <input type="number" id="start" value="1" min="1">
     </label>
     <label>End-Zahl:
-      <input type="number" id="end" value="10" min="1">
+      <input type="number" id="end" value="30" min="1">
     </label>
     <button id="startBtn">Start</button>
     <button id="stopBtn" disabled>Stop</button>
@@ -93,7 +93,7 @@
         const name = `${prefix}${current}`;
         await checkName(name);
         current++;
-        timeoutId = setTimeout(loop, 500); // 500ms Pause
+        timeoutId = setTimeout(loop, 300); // 500ms Pause
       }
       loop();
     };
@@ -107,4 +107,5 @@
   </script>
 </body>
 </html>
+
 
