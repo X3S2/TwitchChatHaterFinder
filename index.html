@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Twitch Account Checker</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #222; color: #eee; }
+    .container { max-width: 600px; margin: 40px auto; background: #333; padding: 24px; border-radius: 10px; }
+    label { display: block; margin-top: 16px; }
+    input[type="text"], input[type="number"] { width: 100%; padding: 8px; margin-top: 4px; border-radius: 4px; border: 1px solid #555; background: #222; color: #eee; }
+    button { margin: 16px 8px 0 0; padding: 10px 24px; border: none; border-radius: 4px; background: #4a90e2; color: #fff; font-size: 1rem; cursor: pointer; }
+    button:disabled { background: #888; }
+    .results { margin-top: 24px; }
+    .result { padding: 8px 0; font-size: 1.2rem; }
+    .exists { color: #0f0; font-size: 1.5rem; font-weight: bold; }
+    .missing { color: #f00; font-size: 1.2rem; }
+    .error { color: #ff0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Twitch Account Checker</h2>
+    <label>Namens-Präfix:
+      <input type="text" id="prefix" value="everylunaeverv">
+    </label>
+    <label>Start-Zahl:
+      <input type="number" id="start" value="1" min="1">
+    </label>
+    <label>End-Zahl:
+      <input type="number" id="end" value="10" min="1">
+    </label>
+    <button id="startBtn">Start</button>
+    <button id="stopBtn" disabled>Stop</button>
+    <div class="results" id="results"></div>
+  </div>
+  <script>
+    // Trage hier deine Client-ID und das Token ein (Achtung: öffentlich!)
+    const CLIENT_ID = "DEINE_CLIENT_ID";
+    const OAUTH_TOKEN = "Bearer DEIN_OAUTH_TOKEN";
+    let running = false;
+    let current = 0;
+    let timeoutId = null;
+
+    function showResult(name, status, reason) {
+      const results = document.getElementById('results');
+      const div = document.createElement('div');
+      div.className = 'result ' + (status === 'exists' ? 'exists' : (status === 'missing' ? 'missing' : 'error'));
+      div.textContent = name + ': ' + (status === 'exists' ? 'Existiert!' : (status === 'missing' ? 'Existiert nicht!' : reason));
+      results.appendChild(div);
+      results.scrollTop = results.scrollHeight;
+    }
+
+    async function checkName(name) {
+      try {
+        const res = await fetch(`https://api.twitch.tv/helix/users?login=${name}`, {
+          headers: {
+            'Client-ID': CLIENT_ID,
+            'Authorization': OAUTH_TOKEN
+          }
+        });
+        if (res.status === 401) {
+          showResult(name, 'error', '401 Unauthorized');
+          return;
+        }
+        const data = await res.json();
+        if (data.data && data.data.length > 0) {
+          showResult(name, 'exists');
+        } else {
+          showResult(name, 'missing');
+        }
+      } catch (e) {
+        showResult(name, 'error', e.message);
+      }
+    }
+
+    document.getElementById('startBtn').onclick = async function() {
+      if (running) return;
+      running = true;
+      document.getElementById('stopBtn').disabled = false;
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('results').innerHTML = '';
+      const prefix = document.getElementById('prefix').value;
+      const start = parseInt(document.getElementById('start').value);
+      const end = parseInt(document.getElementById('end').value);
+      current = start;
+      async function loop() {
+        if (!running || current > end) {
+          running = false;
+          document.getElementById('stopBtn').disabled = true;
+          document.getElementById('startBtn').disabled = false;
+          return;
+        }
+        const name = `${prefix}${current}`;
+        await checkName(name);
+        current++;
+        timeoutId = setTimeout(loop, 500); // 500ms Pause
+      }
+      loop();
+    };
+
+    document.getElementById('stopBtn').onclick = function() {
+      running = false;
+      document.getElementById('stopBtn').disabled = true;
+      document.getElementById('startBtn').disabled = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  </script>
+</body>
+</html>
